@@ -8,8 +8,7 @@ from botocore import UNSIGNED
 from botocore.client import Config
 # access .env file
 from dotenv import load_dotenv
-from bs4 import BeautifulSoup
-# langchain
+#from bs4 import BeautifulSoup
 # HF libraries
 from langchain.llms import HuggingFaceHub
 from langchain.embeddings import HuggingFaceHubEmbeddings
@@ -29,11 +28,16 @@ import zipfile
 config = load_dotenv(".env")
 
 
-model_id = HuggingFaceHub(repo_id="mistralai/Mistral-7B-Instruct-v0.1", model_kwargs={"temperature":0.1, "max_new_tokens":1024, "repetition_penalty":1.2, "streaming": True, "return_full_text":True})
+model_id = HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", model_kwargs={
+    "temperature":0.1, 
+    "max_new_tokens":1024, 
+    "repetition_penalty":1.2, 
+    "streaming": True, 
+    "return_full_text":True
+    })
 
 model_name = "sentence-transformers/multi-qa-mpnet-base-dot-v1"
 embeddings = HuggingFaceHubEmbeddings(repo_id=model_name)
-
 
 
 s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
@@ -51,11 +55,10 @@ db.get()
 # FAISS_INDEX_PATH='./chroma_db/faiss_db_ray'
 # db = FAISS.load_local(FAISS_INDEX_PATH, embeddings)
 
-retriever = db.as_retriever(search_type = "mmr")
-#(search_type="similarity_score_threshold", search_kwargs={'score_threshold': 0.8}) #(search_type = "mmr", search_kwargs={'k': 5, 'fetch_k': 25})
+retriever = db.as_retriever(search_type = "mmr")#, search_kwargs={'k': 5, 'fetch_k': 25})
 global qa 
 template = """
-You are the friendly documentation buddy Arti, who helps users in using RAY, the open-source unified framework for scaling AI and Python applications.\
+You are the friendly documentation buddy Arti, who helps the Human in using RAY, the open-source unified framework for scaling AI and Python applications.\
     Use the following context (delimited by <ctx></ctx>) and the chat history (delimited by <hs></hs>) to answer the question :
 ------
 <ctx>
@@ -93,13 +96,13 @@ def bot(history):
     src_list = '\n'.join(sources)
     print_this = response['result']+"\n\n\n Sources: \n\n\n"+src_list
 
-    history[-1][1] = ""
-    for character in print_this:
-        history[-1][1] += character
-        time.sleep(0.05)
-        yield history
-    # history[-1][1] = response['result']
-    # return print_this
+    #history[-1][1] = ""
+    #for character in response['result']: #print_this:
+    #    history[-1][1] += character
+    #    time.sleep(0.05)
+    #    yield history
+    history[-1][1] = print_this #response['result']
+    return history
 
 def infer(question, history):
     query =  question
@@ -117,7 +120,6 @@ title = """
     when everything is ready, you can start asking questions about the docu ;)</p>
 </div>
 """
-
 
 with gr.Blocks(css=css) as demo:
     with gr.Column(elem_id="col-container"):
