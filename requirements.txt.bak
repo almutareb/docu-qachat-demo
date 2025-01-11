@@ -1,8 +1,0 @@
-huggingface_hub
-chromadb
-faiss-cpu
-langchain
-python-dotenv
-bs4
-gradio
-boto3
