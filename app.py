@@ -135,7 +135,7 @@ with gr.Blocks(css=css) as demo:
     )
     clear.click(lambda: None, None, chatbot, queue=False)
 
-demo.queue()
-demo.launch(debug=True, share=True)
+#demo.queue()
+#demo.launch(debug=True, share=True)
 
 app = gr.mount_gradio_app(app, demo, path="/")
