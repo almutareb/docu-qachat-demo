@@ -10,11 +10,11 @@ from botocore.client import Config
 from dotenv import load_dotenv
 #from bs4 import BeautifulSoup
 # HF libraries
-from langchain.llms import HuggingFaceHub
-from langchain.embeddings import HuggingFaceHubEmbeddings
+from langchain_community.llms import HuggingFaceHub
+from langchain_community.embeddings import HuggingFaceHubEmbeddings
 # vectorestore
-from langchain.vectorstores import Chroma
-from langchain.vectorstores import FAISS
+from langchain_chroma import Chroma
+from langchain_community.vectorstores import FAISS
 # retrieval chain
 from langchain.chains import RetrievalQA
 # prompt template
@@ -23,6 +23,7 @@ from langchain.memory import ConversationBufferMemory
 # logging
 #import logging
 import zipfile
+from fastapi import FastAPI
 
 # load HF Token
 config = load_dotenv(".env")
@@ -33,12 +34,13 @@ model_id = HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", model_kwargs={
     "max_new_tokens":1024, 
     "repetition_penalty":1.2, 
     "streaming": True, 
-    "return_full_text":True
+    "return_full_text":False
     })
 
 model_name = "sentence-transformers/multi-qa-mpnet-base-dot-v1"
 embeddings = HuggingFaceHubEmbeddings(repo_id=model_name)
 
+app = FastAPI()
 
 s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
 
@@ -78,7 +80,7 @@ prompt = PromptTemplate(
 )
 memory = ConversationBufferMemory(memory_key="history", input_key="question")
 qa = RetrievalQA.from_chain_type(llm=model_id, chain_type="stuff", retriever=retriever, verbose=True, return_source_documents=True, chain_type_kwargs={
-    "verbose": True,
+    #"verbose": True,
     "memory": memory,
     "prompt": prompt
 }
@@ -91,7 +93,7 @@ def add_text(history, text):
 
 def bot(history):
     response = infer(history[-1][0], history)
-    print(*memory)
+    #print(*memory)
     sources = [doc.metadata.get("source") for doc in response['source_documents']]
     src_list = '\n'.join(sources)
     print_this = response['result']+"\n\n\n Sources: \n\n\n"+src_list
@@ -134,4 +136,6 @@ with gr.Blocks(css=css) as demo:
     clear.click(lambda: None, None, chatbot, queue=False)
 
 demo.queue()
-demo.launch()
+demo.launch(debug=True, share=True)
+
+app = gr.mount_gradio_app(app, demo, path="/")
